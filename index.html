@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Generador SQL — Misiones (AzerothCore) — Corregido</title>
+<style>
+  :root{
+    --bg:#0b1120; --panel:#111c2e; --panel2:#17263d; --border:#22344f;
+    --text:#e5eef8; --muted:#8aa2bf; --accent:#38bdf8; --accent2:#0ea5e9;
+    --ok:#22c55e; --danger:#ef4444; --warn:#f59e0b;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);padding:24px;line-height:1.55}
+  .container{max-width:1250px;margin:0 auto}
+  h1{font-size:1.7rem;color:var(--accent);margin-bottom:4px}
+  .sub{color:var(--muted);font-size:.9rem;margin-bottom:22px}
+  .banner{background:var(--panel2);border-left:4px solid var(--accent);padding:12px 16px;border-radius:6px;font-size:.85rem;color:var(--muted);margin-bottom:20px}
+  .banner b{color:var(--text)}
+  .banner code{background:#0f172a;padding:2px 6px;border-radius:4px;color:#7dd3fc;font-size:.82rem}
+  .section{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:16px}
+  .section-title{font-size:1.02rem;font-weight:700;margin-bottom:6px;color:var(--accent)}
+  .section-desc{font-size:.82rem;color:var(--muted);margin-bottom:14px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}
+  .field{display:flex;flex-direction:column;gap:4px}
+  .field label{font-size:.8rem;color:var(--text);font-weight:600}
+  .field .help{font-size:.72rem;color:var(--muted);line-height:1.35}
+  .field input,.field select,.field textarea{background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:8px 10px;font-size:.9rem;outline:none;font-family:inherit;transition:border-color .2s}
+  .field input:focus,.field select:focus,.field textarea:focus{border-color:var(--accent)}
+  .field textarea{resize:vertical;min-height:60px}
+  .actions{display:flex;gap:12px;flex-wrap:wrap;margin:18px 0}
+  .btn{padding:12px 28px;border-radius:8px;border:none;font-weight:700;font-size:.95rem;cursor:pointer;transition:.2s}
+  .btn-primary{background:var(--accent2);color:#fff}
+  .btn-primary:hover{background:#0284c7}
+  .btn-copy{background:var(--ok);color:#fff}
+  .btn-copy:hover{background:#16a34a}
+  .btn-danger{background:var(--danger);color:#fff}
+  .btn-danger:hover{background:#b91c1c}
+  .btn-reset{background:var(--panel2);color:var(--muted);border:1px solid var(--border)}
+  .btn-reset:hover{color:var(--text)}
+  .output-box{background:#020617;border:1px solid var(--border);border-radius:10px;padding:18px;font-family:'Cascadia Code','Fira Code',monospace;font-size:.72rem;color:#a5f3fc;white-space:pre-wrap;word-break:break-all;min-height:180px;max-height:500px;overflow:auto;line-height:1.45}
+  .output-box:empty::before{content:'El SQL aparecerá aquí al pulsar Generar INSERT o Generar DELETE…';color:#334155;font-style:italic;font-size:.9rem}
+  .note{font-size:.78rem;color:var(--warn);margin-top:10px}
+  .obj-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:6px}
+  @media(max-width:600px){.grid{grid-template-columns:1fr}.obj-row{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="container">
+
+  <h1>⚔️ Generador SQL — Misiones (AzerothCore) — Corregido</h1>
+  <p class="sub">AzerothCore 3.3.5a · quest_template · quest_template_addon · quest_objectives · quest_offer_reward · NPCs</p>
+
+  <div class="banner">
+    <b>¿Cómo funciona?</b> Rellena las secciones con los datos de tu misión. Pulsa <b>⚙️ Generar INSERT</b> para crear el SQL que inserta la misión en todas las tablas necesarias. Usa <b>🗑️ Generar DELETE</b> para borrarla por su ID. Copia el resultado y ejecútalo en <code>acore_world</code>.
+    Usa IDs de misión <b>100000+</b> para evitar conflictos con Blizzard.
+  </div>
+
+  <!-- ================= SECCIÓN 1: DATOS BÁSICOS ================= -->
+  <div class="section">
+    <div class="section-title">1 · Datos básicos de la misión (quest_template)</div>
+    <div class="section-desc">Identificación, nivel, textos y flags principales.</div>
+    <div class="grid">
+      <div class="field">
+        <label>ID de la misión</label>
+        <input type="number" id="questId" value="100001">
+        <span class="help">Clave primaria. Debe ser único.</span>
+      </div>
+      <div class="field">
+        <label>LogTitle — Título</label>
+        <input type="text" id="questTitle" value="Mi Nueva Misión">
+      </div>
+      <div class="field">
+        <label>QuestLevel — Nivel de misión</label>
+        <input type="number" id="questLevel" value="80">
+      </div>
+      <div class="field">
+        <label>MinLevel — Nivel mínimo</label>
+        <input type="number" id="minLevel" value="80">
+      </div>
+      <div class="field">
+        <label>QuestType — Tipo</label>
+        <select id="questType">
+          <option value="0">0 — Normal</option>
+          <option value="1">1 — Grupo</option>
+          <option value="2">2 — Profesión</option>
+          <option value="3">3 — Herencia (PvP)</option>
+          <option value="4">4 — Herencia (Raid)</option>
+          <option value="5">5 — Herencia (Dungeon)</option>
+          <option value="6">6 — Herencia (Zona)</option>
+          <option value="7">7 — Herencia (Épica)</option>
+          <option value="8">8 — Herencia (Legendaria)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Flags</label>
+        <input type="number" id="questFlags" value="0">
+        <span class="help">Bitmask. 0 = sin flags.</span>
+      </div>
+      <div class="field">
+        <label>SuggestedGroupNum</label>
+        <input type="number" id="suggestedGroupNum" value="0">
+      </div>
+    </div>
+    <div class="field" style="margin-top:14px">
+      <label>QuestDescription — Detalles</label>
+      <textarea id="questDetails" rows="3" placeholder="Describe la historia de la misión…"></textarea>
+    </div>
+    <div class="field" style="margin-top:10px">
+      <label>AreaDescription — Objetivos (texto)</label>
+      <textarea id="questObjectivesText" rows="2" placeholder="Texto que ve el jugador en el diario…"></textarea>
+    </div>
+    <div class="field" style="margin-top:10px">
+      <label>QuestCompletionLog — Texto al completar</label>
+      <textarea id="questEndText" rows="2" placeholder="Texto que muestra el NPC al entregar…"></textarea>
+    </div>
+  </div>
+
+  <!-- ================= SECCIÓN 2: REQUISITOS Y DEPENDENCIAS ================= -->
+  <div class="section">
+    <div class="section-title">2 · Requisitos y dependencias (quest_template_addon)</div>
+    <div class="section-desc">Clases, misiones previas/siguientes, reputación y habilidades.</div>
+    <div class="grid">
+      <div class="field">
+        <label>AllowableClasses (bitmask)</label>
+        <input type="number" id="allowableClasses" value="-1">
+        <span class="help">-1 = todas. 1=Guerrero, 2=Paladín, 4=Cazador…</span>
+      </div>
+      <div class="field">
+        <label>AllowableRaces (bitmask) — quest_template</label>
+        <input type="number" id="allowableRaces" value="-1">
+        <span class="help">-1 = todas. 1=Humano, 2=Orco, 4=Enano…</span>
+      </div>
+      <div class="field">
+        <label>PrevQuestID</label>
+        <input type="number" id="prevQuestId" value="0">
+        <span class="help">0 = sin requisito previo.</span>
+      </div>
+      <div class="field">
+        <label>NextQuestID</label>
+        <input type="number" id="nextQuestId" value="0">
+        <span class="help">0 = sin siguiente misión.</span>
+      </div>
+      <div class="field">
+        <label>ExclusiveGroup</label>
+        <input type="number" id="exclusiveGroup" value="0">
+      </div>
+      <div class="field">
+        <label>RequiredSkillID</label>
+        <input type="number" id="requiredSkillId" value="0">
+      </div>
+      <div class="field">
+        <label>RequiredSkillPoints</label>
+        <input type="number" id="requiredSkillPoints" value="0">
+      </div>
+      <div class="field">
+        <label>RequiredMinRepFaction</label>
+        <input type="number" id="requiredMinRepFaction" value="0">
+      </div>
+      <div class="field">
+        <label>RequiredMinRepValue</label>
+        <input type="number" id="requiredMinRepValue" value="0">
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= SECCIÓN 3: OBJETIVOS ================= -->
+  <div class="section">
+    <div class="section-title">3 · Objetivos de la misión (quest_objectives)</div>
+    <div class="section-desc">Hasta 4 objetivos. Tipo: 0=Matar, 1=Objeto, 2=GameObject, 3=Hablar, 5=Hechizo.</div>
+    <div id="objectivesContainer"></div>
+  </div>
+
+  <!-- ================= SECCIÓN 4: RECOMPENSAS ================= -->
+  <div class="section">
+    <div class="section-title">4 · Recompensas (quest_template + quest_offer_reward)</div>
+    <div class="section-desc">Dinero, XP, objetos y texto de recompensa.</div>
+    <div class="grid">
+      <div class="field">
+        <label>RewardMoney (cobre)</label>
+        <input type="number" id="rewardMoney" value="0">
+      </div>
+      <div class="field">
+        <label>RewardXPDifficulty</label>
+        <input type="number" id="rewardXPDifficulty" value="0">
+        <span class="help">0 = usar tabla de XP por nivel.</span>
+      </div>
+      <div class="field">
+        <label>RewardItem1 (ID)</label>
+        <input type="number" id="rewardItem1" value="0">
+      </div>
+      <div class="field">
+        <label>RewardAmount1</label>
+        <input type="number" id="rewardAmount1" value="0">
+      </div>
+      <div class="field">
+        <label>RewardItem2 (ID)</label>
+        <input type="number" id="rewardItem2" value="0">
+      </div>
+      <div class="field">
+        <label>RewardAmount2</label>
+        <input type="number" id="rewardAmount2" value="0">
+      </div>
+    </div>
+    <div class="field" style="margin-top:14px">
+      <label>RewardText (quest_offer_reward)</label>
+      <textarea id="rewardText" rows="2" placeholder="¡Bien hecho! Aquí tienes tu recompensa…"></textarea>
+    </div>
+  </div>
+
+  <!-- ================= SECCIÓN 5: NPCs VINCULADOS ================= -->
+  <div class="section">
+    <div class="section-title">5 · NPCs que dan y reciben la misión</div>
+    <div class="section-desc">Se insertan en creature_queststarter y creature_questender.</div>
+    <div class="grid">
+      <div class="field">
+        <label>ID del NPC que inicia (Starter)</label>
+        <input type="number" id="starterNpc" value="0">
+        <span class="help">0 = no asignar.</span>
+      </div>
+      <div class="field">
+        <label>ID del NPC que finaliza (Ender)</label>
+        <input type="number" id="enderNpc" value="0">
+        <span class="help">0 = no asignar.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= ACCIONES Y SALIDA ================= -->
+  <div class="actions">
+    <button type="button" class="btn btn-primary" onclick="generarSQL()">⚙️ Generar INSERT</button>
+    <button type="button" class="btn btn-danger" onclick="generarDelete()">🗑️ Generar DELETE</button>
+    <button type="button" class="btn btn-copy" onclick="copiarSQL(event)">📋 Copiar SQL</button>
+    <button type="button" class="btn btn-reset" onclick="resetForm()">🔄 Limpiar</button>
+  </div>
+
+  <div class="output-box" id="output" tabindex="0"></div>
+
+</div>
+
+<script>
+function initObjectives() {
+  const container = document.getElementById('objectivesContainer');
+  container.innerHTML = '';
+  for (let i = 1; i <= 4; i++) {
+    const row = document.createElement('div');
+    row.className = 'obj-row';
+    row.innerHTML = `
+      <div class="field">
+        <label>Objetivo ${i} — Tipo</label>
+        <select id="obj_type_${i}">
+          <option value="0">0 — Matar criatura</option>
+          <option value="1">1 — Objeto</option>
+          <option value="2">2 — GameObject</option>
+          <option value="3">3 — Hablar con</option>
+          <option value="5">5 — Hechizo</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>ObjectID</label>
+        <input type="number" id="obj_objid_${i}" value="0">
+      </div>
+      <div class="field">
+        <label>Cantidad</label>
+        <input type="number" id="obj_amount_${i}" value="0">
+      </div>
+    `;
+    container.appendChild(row);
+  }
+}
+
+function num(id, def = 0) {
+  const el = document.getElementById(id);
+  if (!el) return def;
+  const n = parseInt(el.value, 10);
+  return isNaN(n) ? def : n;
+}
+function str(id, def = '') {
+  const el = document.getElementById(id);
+  if (!el) return def;
+  return (el.value || def).replace(/'/g, "''");
+}
+
+// ============================================================
+// GENERAR INSERT (VERSIÓN CORREGIDA SEGÚN ESQUEMA REAL)
+// ============================================================
+function generarSQL() {
+  try {
+    const qid = num('questId');
+    const title = str('questTitle');
+    const level = num('questLevel');
+    const minLevel = num('minLevel');
+    const qType = num('questType');
+    const flags = num('questFlags');
+    const groupNum = num('suggestedGroupNum');
+    const details = str('questDetails');
+    const objText = str('questObjectivesText');
+    const endText = str('questEndText');
+
+    const classes = num('allowableClasses', -1);
+    const races = num('allowableRaces', -1);
+    const prevQ = num('prevQuestId');
+    const nextQ = num('nextQuestId');
+    const exclGroup = num('exclusiveGroup');
+    const reqSkillId = num('requiredSkillId');
+    const reqSkillPts = num('requiredSkillPoints');
+    const reqMinRepFac = num('requiredMinRepFaction');
+    const reqMinRepVal = num('requiredMinRepValue');
+
+    const money = num('rewardMoney');
+    const xpDiff = num('rewardXPDifficulty');
+    const rItem1 = num('rewardItem1');
+    const rAmt1 = num('rewardAmount1');
+    const rItem2 = num('rewardItem2');
+    const rAmt2 = num('rewardAmount2');
+    const rewardTxt = str('rewardText');
+
+    const starter = num('starterNpc');
+    const ender = num('enderNpc');
+
+    let sql = `-- ============================================================\n`;
+    sql += `-- INSERT para AzerothCore 3.3.5a — Misión ID: ${qid}\n`;
+    sql += `-- Esquema verificado contra la wiki oficial de AzerothCore\n`;
+    sql += `-- ============================================================\n\n`;
+
+    // 1. quest_template (columnas correctas)
+    sql += `-- 1. Datos básicos (quest_template)\n`;
+    sql += `INSERT INTO quest_template (\n`;
+    sql += `  ID, QuestType, QuestLevel, MinLevel, SuggestedGroupNum, Flags,\n`;
+    sql += `  LogTitle, QuestDescription, AreaDescription, QuestCompletionLog,\n`;
+    sql += `  AllowableRaces, RewardMoney, RewardXPDifficulty,\n`;
+    sql += `  RewardItem1, RewardAmount1, RewardItem2, RewardAmount2\n`;
+    sql += `) VALUES (\n`;
+    sql += `  ${qid}, ${qType}, ${level}, ${minLevel}, ${groupNum}, ${flags},\n`;
+    sql += `  '${title}', '${details}', '${objText}', '${endText}',\n`;
+    sql += `  ${races}, ${money}, ${xpDiff},\n`;
+    sql += `  ${rItem1}, ${rAmt1}, ${rItem2}, ${rAmt2}\n`;
+    sql += `);\n\n`;
+
+    // 2. quest_template_addon (AllowableClasses aquí)
+    sql += `-- 2. Requisitos y dependencias (quest_template_addon)\n`;
+    sql += `INSERT INTO quest_template_addon (\n`;
+    sql += `  ID, AllowableClasses, PrevQuestID, NextQuestID, ExclusiveGroup,\n`;
+    sql += `  RequiredSkillID, RequiredSkillPoints,\n`;
+    sql += `  RequiredMinRepFaction, RequiredMinRepValue\n`;
+    sql += `) VALUES (\n`;
+    sql += `  ${qid}, ${classes}, ${prevQ}, ${nextQ}, ${exclGroup},\n`;
+    sql += `  ${reqSkillId}, ${reqSkillPts},\n`;
+    sql += `  ${reqMinRepFac}, ${reqMinRepVal}\n`;
+    sql += `);\n\n`;
+
+    // 3. quest_objectives (con ID manual)
+    sql += `-- 3. Objetivos (quest_objectives)\n`;
+    let hasObj = false;
+    let objCounter = 1;
+    for (let i = 1; i <= 4; i++) {
+      const oType = num(`obj_type_${i}`);
+      const oId = num(`obj_objid_${i}`);
+      const oAmt = num(`obj_amount_${i}`);
+      if (oId > 0 && oAmt > 0) {
+        hasObj = true;
+        const objId = qid * 10 + objCounter; // ID único para el objetivo
+        sql += `INSERT INTO quest_objectives (ID, QuestID, Type, StorageIndex, ObjectID, Amount, Flags) VALUES (${objId}, ${qid}, ${oType}, ${objCounter - 1}, ${oId}, ${oAmt}, 0);\n`;
+        objCounter++;
+      }
+    }
+    if (!hasObj) sql += `-- (Sin objetivos definidos)\n`;
+    sql += `\n`;
+
+    // 4. quest_offer_reward (RewardText, no Text)
+    if (rewardTxt) {
+      sql += `-- 4. Texto de recompensa (quest_offer_reward)\n`;
+      sql += `INSERT INTO quest_offer_reward (ID, Emote1, Emote2, Emote3, Emote4, EmoteDelay1, EmoteDelay2, EmoteDelay3, EmoteDelay4, RewardText) VALUES (${qid}, 0, 0, 0, 0, 0, 0, 0, 0, '${rewardTxt}');\n\n`;
+    }
+
+    // 5. NPCs
+    if (starter > 0) {
+      sql += `-- 5. NPC que inicia la misión\n`;
+      sql += `INSERT INTO creature_queststarter (id, quest) VALUES (${starter}, ${qid});\n\n`;
+    }
+    if (ender > 0) {
+      sql += `-- 6. NPC que finaliza la misión\n`;
+      sql += `INSERT INTO creature_questender (id, quest) VALUES (${ender}, ${qid});\n\n`;
+    }
+
+    const out = document.getElementById('output');
+    out.textContent = sql;
+    out.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  } catch (e) {
+    alert("Error al generar el INSERT: " + e.message);
+  }
+}
+
+// ============================================================
+// GENERAR DELETE (sin cambios, pero se añade quest_request_items por completitud)
+// ============================================================
+function generarDelete() {
+  const qid = num('questId');
+  if (qid <= 0) {
+    document.getElementById('output').textContent = '⚠️ Introduce un ID de misión válido (mayor que 0).';
+    return;
+  }
+
+  const sql = `-- ============================================================\n` +
+    `-- DELETE para AzerothCore 3.3.5a — Misión ID: ${qid}\n` +
+    `-- ⚠️ Esta acción elimina la misión de todas las tablas relacionadas.\n` +
+    `-- ============================================================\n\n` +
+    `DELETE FROM quest_template WHERE ID = ${qid};\n` +
+    `DELETE FROM quest_template_addon WHERE ID = ${qid};\n` +
+    `DELETE FROM quest_objectives WHERE QuestID = ${qid};\n` +
+    `DELETE FROM quest_offer_reward WHERE ID = ${qid};\n` +
+    `DELETE FROM creature_queststarter WHERE quest = ${qid};\n` +
+    `DELETE FROM creature_questender WHERE quest = ${qid};\n`;
+
+  const out = document.getElementById('output');
+  out.textContent = sql;
+  out.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function copiarSQL(ev) {
+  const out = document.getElementById('output');
+  const txt = out.textContent;
+  if (!txt || txt.trim() === '') {
+    alert('Primero genera el SQL (INSERT o DELETE).');
+    return;
+  }
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(txt).then(() => {
+      mostrarCopiado(ev.target);
+    }).catch(() => copiarFallback(out, ev.target));
+  } else {
+    copiarFallback(out, ev.target);
+  }
+}
+function copiarFallback(outElement, btn) {
+  const range = document.createRange();
+  range.selectNodeContents(outElement);
+  const sel = window.getSelection();
+  sel.removeAllRanges();
+  sel.addRange(range);
+  try {
+    const successful = document.execCommand('copy');
+    if (successful) mostrarCopiado(btn);
+    else alert('Por favor, presiona Ctrl+C para copiar el texto seleccionado.');
+  } catch (err) {
+    alert('Tu navegador bloqueó el copiado automático. Selecciona el texto y presiona Ctrl+C.');
+  }
+  sel.removeAllRanges();
+}
+function mostrarCopiado(btn) {
+  const orig = btn.textContent;
+  btn.textContent = '✅ Copiado';
+  setTimeout(() => btn.textContent = orig, 1500);
+}
+
+function resetForm() {
+  document.getElementById('questId').value = 100001;
+  document.getElementById('questTitle').value = 'Mi Nueva Misión';
+  document.getElementById('questLevel').value = 80;
+  document.getElementById('minLevel').value = 80;
+  document.getElementById('questType').value = 0;
+  document.getElementById('questFlags').value = 0;
+  document.getElementById('suggestedGroupNum').value = 0;
+  document.getElementById('questDetails').value = '';
+  document.getElementById('questObjectivesText').value = '';
+  document.getElementById('questEndText').value = '';
+  document.getElementById('allowableClasses').value = -1;
+  document.getElementById('allowableRaces').value = -1;
+  document.getElementById('prevQuestId').value = 0;
+  document.getElementById('nextQuestId').value = 0;
+  document.getElementById('exclusiveGroup').value = 0;
+  document.getElementById('requiredSkillId').value = 0;
+  document.getElementById('requiredSkillPoints').value = 0;
+  document.getElementById('requiredMinRepFaction').value = 0;
+  document.getElementById('requiredMinRepValue').value = 0;
+  document.getElementById('rewardMoney').value = 0;
+  document.getElementById('rewardXPDifficulty').value = 0;
+  document.getElementById('rewardItem1').value = 0;
+  document.getElementById('rewardAmount1').value = 0;
+  document.getElementById('rewardItem2').value = 0;
+  document.getElementById('rewardAmount2').value = 0;
+  document.getElementById('rewardText').value = '';
+  document.getElementById('starterNpc').value = 0;
+  document.getElementById('enderNpc').value = 0;
+  for (let i = 1; i <= 4; i++) {
+    document.getElementById(`obj_type_${i}`).value = 0;
+    document.getElementById(`obj_objid_${i}`).value = 0;
+    document.getElementById(`obj_amount_${i}`).value = 0;
+  }
+  document.getElementById('output').textContent = '';
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  initObjectives();
+});
+</script>
+</body>
+</html>
